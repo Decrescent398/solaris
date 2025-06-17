@@ -1,64 +1,82 @@
 import reflex as rx
+from collections import Counter
+
+class User(rx.Base):
+    name: str
+    email: str
+    gender: str
 
 class State(rx.State):
+    users: list[User] = [
 
-    count: int = 0
-    log: bool = False
-    head: str = ""
-    decider: bool = True
-    items: list[str] = ["Apple", "Banana", "Cherry"]
+        User(
+            name = "Danilo Sousa",
+            email = "danilo@example.com",
+            gender = "Male"
+        ),
 
-    @rx.event
-    def increment(self):
-        self.count += 1
+        User(
+            name = "Zahram Ambessa",
+            email = "zahra@example.com",
+            gender = "Female"
+        )
 
-    @rx.event
-    def decrement(self):
-        self.count -= 1
+    ]
 
-    @rx.event
-    def get_head(self, new_head):
-        self.head = new_head
+    def add_user(self, form_data: dict):
+        self.users.append(User(**form_data))
 
-    @rx.event
-    def is_even(self):
-        if self.count % 2 == 0:
-            self.decider = True
-        else:
-            self.decider = False
-        
-    @rx.event
-    def toggle(self):
-        self.log = not self.log
-        State.is_even()
-
-def render_item(item: rx.Var[str]):
-    return rx.list.item(item)
-
-def index():
-
-    return rx.box(
-
-    rx.hstack(
-
-        rx.button("Increment", color_scheme="grass", on_click=State.increment),
-        rx.heading(State.count),
-        rx.button("Decrement", color_scheme="ruby", on_click=State.decrement)
-    ),
-
-    rx.progress(value=State.count),
-    rx.input(default_value=State.head, on_blur=State.get_head),
-
-    rx.vstack(
-
-        rx.button(f"Toggle {State.head}", on_click=State.toggle),
-        rx.cond(State.decider, rx.heading(State.head), rx.heading(f"{State.head} not")),
-        rx.heading(State.head),
-        rx.foreach(State.items, render_item)
-
+def show_user(user: User):
+    return rx.table.row(
+        rx.table.cell(user.name),
+        rx.table.cell(user.email),
+        rx.table.cell(user.gender)
     )
 
+def form():
+    return rx.form(
+
+        rx.vstack(
+            rx.input(
+                placeholder="User Name",
+                name = "name",
+                required = True
+            ),
+
+            rx.input(
+                placeholder = "user@example.com",
+                name = "email",
+                required = True
+            ),
+
+            rx.select(
+                ["Male", "Female", "Other"],
+                placeholder = "Select your gender",
+                name = "gender"
+            ),
+            rx.button("Submit", type="submit"),
+        ),
+        on_submit=State.add_user,
+        reset_on_submit = True,
     )
+
+def index() -> rx.Component:
+    return rx.vstack(
+form(),
+rx.table.root(
+        rx.table.header(
+            rx.table.row(
+                rx.table.column_header_cell("Name"),
+                rx.table.column_header_cell("Email"),
+                rx.table.column_header_cell("Gender"),
+            )
+        ),
+        rx.table.body(
+            rx.foreach(State.users, show_user)
+        ),
+        variant = "surface",
+        size = "3"
+    ))
 
 app = rx.App()
 app.add_page(index)
